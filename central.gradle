@@ -7,14 +7,6 @@ version = PROJECT_VERSION
 def toRemote = project.hasProperty('toRemote') ? Boolean.valueOf("${toRemote}") : false
 println("publish to remote repository：${toRemote}")
 
-def getUsername() {
-    return hasProperty('USERNAME') ? USERNAME : ""
-}
-
-def getPassword() {
-    return hasProperty('PASSWORD') ? PASSWORD : ""
-}
-
 def configurePom(pom) {
     pom.groupId = PROJECT_GROUP
     pom.artifactId = POM_ARTIFACT_ID
@@ -27,9 +19,9 @@ def configurePom(pom) {
         url POM_URL
 
         scm {
-            url POM_SCM_URL
-            connection POM_SCM_CONNECTION
-            developerConnection POM_SCM_DEV_CONNECTION
+            url POM_URL
+            connection POM_GIT_URL
+            developerConnection POM_GIT_URL
         }
 
         licenses {
@@ -57,22 +49,21 @@ afterEvaluate { project ->
 
                 if (toRemote) {
                     repository(url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2/') {
-                        authentication(userName: getUsername(), password: getPassword())
+                        authentication(userName: SONATYPE_USERNAME, password: SONATYPE_PASSWORD)
                     }
                     snapshotRepository(url: 'https://oss.sonatype.org/content/repositories/snapshots/') {
-                        authentication(userName: getUsername(), password: getPassword())
+                        authentication(userName: SONATYPE_USERNAME, password: SONATYPE_PASSWORD)
                     }
+                    configurePom(pom)
                 } else {
                     repository(url: mavenLocal().getUrl())
                 }
-
-                configurePom(pom)
             }
         }
     }
 
     signing {
-        required { !version.concat('SNAPSHOT') && gradle.taskGraph.hasTask("uploadArchives") }
+        required { toRemote && !version.concat('SNAPSHOT') && gradle.taskGraph.hasTask("uploadArchives") }
         sign configurations.archives
     }
 
